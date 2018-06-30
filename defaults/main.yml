@@ -1,0 +1,23 @@
+---
+# defaults file for openvpn-openwrt
+openwrt_openvpn_client_name: 'XX'
+openwrt_openvpn_server_name: 'XX'
+openwrt_openvpn_server_port:
+openwrt_openvpn_server: false
+openwrt_openvpn_server_host: 'example.com'
+openwrt_openvpn_remote_host: ''
+openwrt_openvpn_remote_port: ''
+openwrt_openvpn_topology: 'subnet'
+openwrt_openvpn_dev: "tun"
+openwrt_openvpn_ping_restart: 45
+openwrt_openvpn_ping: 15
+openwrt_openvpn_verb: 3
+openwrt_openvpn_proto: udp
+openwrt_openvpn_persist_key: 1
+openwrt_openvpn_persist_tun: 1
+openwrt_openvpn_ping_timer_rem: 1
+openwrt_openvpn_comp_lzo: 'no'
+openwrt_openvpn_push_routes: []
+openwrt_openvpn_client: false
+
+

@@ -1,0 +1,193 @@
+---
+# tasks file for openvpn-openwrt
+
+#- name: update opkg chache
+#  raw: '[ "$(ls -A /var/opkg-lists/)" ] || opkg update'
+#  changed_when: false
+
+- name: Imposta nome log server
+  set_fact:
+    openwrt_openvpn_status: /var/log/openvpn-server-{{ openwrt_openvpn_server_name }}.log
+
+- name: copy CA certificate
+  copywrt: 
+    src: "easy_rsa/keys/ca.crt"
+    dest: "/etc/openvpn/ca.crt"
+
+- name: Creazione del certificato con easy_rsa
+  import_role:
+    name: easy_rsa
+  vars:
+    easy_rsa_servers:
+      - "server-{{ openwrt_openvpn_server_name }}"
+  delegate_to: 127.0.0.1
+
+- name: Copia del Diffie Helmann per il server
+  copywrt: 
+    src: "easy_rsa/keys/dh{{ easy_rsa_key_size }}.pem"
+    dest: "/etc/openvpn/dh{{ easy_rsa_key_size }}-{{ openwrt_openvpn_server_name }}.pem"
+    mode: 0644
+  notify: restart openvpn
+
+- name: Copia della chiave del certificato server
+  copywrt: 
+    src: "easy_rsa/keys/server-{{ openwrt_openvpn_server_name }}.key"
+    dest: "/etc/openvpn/server-{{ openwrt_openvpn_server_name }}.key"
+    mode: 0600
+  notify: restart openvpn
+
+- name: Copia del del certificato server
+  copywrt: 
+    src: "easy_rsa/keys/server-{{ openwrt_openvpn_server_name }}.crt"
+    dest: "/etc/openvpn/server-{{ openwrt_openvpn_server_name }}.crt"
+    mode: 0600
+  notify: restart openvpn
+
+- name: apply uci settings as server
+  uci: 
+    command: set 
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  with_items:
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}"  
+      value: "openvpn"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.enable"  
+      value: "1"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.topology"  
+      value: "{{ openwrt_openvpn_topology }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.dev"
+      value: "{{ openwrt_openvpn_dev }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.proto"
+      value: "{{ openwrt_openvpn_proto }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.verb"
+      value: "{{ openwrt_openvpn_verb }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.server"
+      value: "{{ openwrt_openvpn_server_subnet }} {{ openwrt_openvpn_server_subnet_mask}}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.port"
+      value: "{{ openwrt_openvpn_server_port }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.ping"
+      value: "{{ openwrt_openvpn_ping }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.ping_restart"
+      value: "{{ openwrt_openvpn_ping_restart }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.status"
+      value: "{{ openwrt_openvpn_status }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.key"
+      value: "/etc/openvpn/server-{{ openwrt_openvpn_server_name }}.key"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.dh"
+      value: "/etc/openvpn/dh{{ easy_rsa_key_size }}-{{ openwrt_openvpn_server_name }}.pem"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.cert"
+      value: "/etc/openvpn/server-{{ openwrt_openvpn_server_name }}.crt"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.ca"
+      value: "/etc/openvpn/ca.crt"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.comp_lzo"
+      value: "{{ openwrt_openvpn_comp_lzo }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.ping_timer_rem"
+      value: "{{ openwrt_openvpn_ping_timer_rem }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.persist_key"
+      value: "{{ openwrt_openvpn_persist_key }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.persist_tun"
+      value: "{{ openwrt_openvpn_persist_tun }}"
+  notify:
+    - uci commit
+    - restart openvpn
+    
+- name: Aggiungi rotte
+  uci:
+    command: add_list
+    key: "openvpn.server{{ openwrt_openvpn_server_name }}.push"
+    value: "route {{ item }}"
+  with_items: "{{ openwrt_openvpn_push_routes }}"
+  notify:
+    - uci commit
+    - restart openvpn
+      
+- name: Riavvia l'applicazione se necessario (serve l'interfaccia UP)
+  meta: flush_handlers
+
+- raw: /sbin/route -n | grep {{ openwrt_openvpn_server_subnet }} | awk '{ print $NF }'
+  register: route_result
+  until: route_result.stdout.find("tun") != -1
+  changed_when: false
+  retries: 7
+  delay: 10
+
+- set_fact:
+    openwrt_openvpn_server_interface: "{{ route_result.stdout_lines[0] }}"
+    openwrt_openvpn_server_alias_interface: "vpn{{ route_result.stdout_lines[0][-1] }}"
+    openwrt_openvpn_server_zone: "vpn_{{ openwrt_openvpn_server_name }}"
+
+- debug:
+    var: openwrt_openvpn_server_interface
+- debug:
+    var: openwrt_openvpn_server_alias_interface
+- debug:
+    var: openwrt_openvpn_server_zone
+
+
+- name: apply uci settings for network as server
+  uci: 
+    command: set 
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  with_items:
+    - key: "network.{{ openwrt_openvpn_server_alias_interface }}"
+      value: "interface"
+    - key: "network.{{ openwrt_openvpn_server_alias_interface }}.ifname"
+      value: "{{ openwrt_openvpn_server_interface }}"
+    - key: "network.{{ openwrt_openvpn_server_alias_interface }}.proto"
+      value: "none"
+    - key: "network.{{ openwrt_openvpn_server_alias_interface }}.auto"
+      value: "1"
+  notify:
+    - uci commit
+    - reload network
+
+
+- name: apply uci settings for zone as server
+  uci: 
+    command: set 
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  with_items:
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}"
+      value: "zone"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}.name"
+      value: "{{ openwrt_openvpn_server_zone }}"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}.network"
+      value: "{{ openwrt_openvpn_server_alias_interface }}"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}.input"
+      value: "ACCEPT"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}.output"
+      value: "ACCEPT"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}.forward"
+      value: "ACCEPT"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}.masq"
+      value: "1"
+  notify:
+    - uci commit
+    - reload firewall
+
+# VPN -> server
+- name: apply uci settings for zone forwarding as server
+  uci: 
+    command: set 
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  with_items:
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}_forwarding_to_lan"
+      value: "forwarding"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}_forwarding_to_lan.src"
+      value: "{{ openwrt_openvpn_server_zone }}"
+    - key: "firewall.{{ openwrt_openvpn_server_zone }}_forwarding_to_lan.dest"
+      value: "lan"
+  notify:
+    - uci commit
+    - reload firewall
+
+#TODO usare /sbin/route -n | grep 10.9.0.0 | awk '{ print $NF }'
+# per estrarre interfaccia, poi  usare numero interfaccia per creare interfaccia(VPN0) su uci
+# poi creare zona firewall per dichiarare masquerade
+# poi creare regole di forwarding tra zone (LAN -> VPN_VR, VPN_VR -> LAN)
+
+
+
