@@ -100,10 +100,23 @@
       value: "{{ openwrt_openvpn_persist_key }}"
     - key: "openvpn.server{{ openwrt_openvpn_server_name }}.persist_tun"
       value: "{{ openwrt_openvpn_persist_tun }}"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.script_security"
+      value: "2"
+    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.learn_address"
+      value: "/usr/local/bin/learn-address.sh"
   notify:
     - uci commit
     - restart openvpn
     
+- name: Aggiungi file per dnsmasq
+  uci:
+    command: add_list
+    key: "dhcp.@dnsmasq[0].addnhosts"
+    value: "/etc/hosts.openvpn-clients"
+  notify:
+    - uci commit
+    - restart dnsmasq
+
 - name: Aggiungi rotte
   uci:
     command: add_list

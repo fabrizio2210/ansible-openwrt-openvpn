@@ -11,3 +11,6 @@
 
 - name: reload firewall
   raw: /etc/init.d/firewall reload
+
+- name: restart dnsmasq
+  raw: /etc/init.d/dnsmasq restart
