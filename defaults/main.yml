@@ -19,5 +19,4 @@ openwrt_openvpn_ping_timer_rem: 1
 openwrt_openvpn_comp_lzo: 'no'
 openwrt_openvpn_push_routes: []
 openwrt_openvpn_client: false
-
-
+openwrt_openvpn_vpn_domain: 'vpn'

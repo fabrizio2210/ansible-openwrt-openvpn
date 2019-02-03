@@ -43,6 +43,19 @@
     mode: 0600
   notify: restart openvpn
 
+- name: Creazione in locale dello script di assegnazione nomi
+  template:
+    src: learn-address.sh
+    dest: /tmp/learn-address.sh
+  changed_when: false
+  delegate_to: 127.0.0.1
+
+- name: Copia dello script per assegnazione nomi DNS
+  copywrt:
+    src: /tmp/learn-address.sh
+    dest: /usr/local/bin/learn-address.sh
+    mode: 0755
+
 - name: apply uci settings as server
   uci: 
     command: set 
