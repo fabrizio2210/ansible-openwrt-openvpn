@@ -43,6 +43,16 @@
     mode: 0600
   notify: restart openvpn
 
+- name: Crea directory locali
+  filewrt:
+    path: /usr/local
+    state: directory
+
+- name: Crea directory binari locali
+  filewrt:
+    path: /usr/local/bin/
+    state: directory
+
 - name: Creazione in locale dello script di assegnazione nomi
   template:
     src: learn-address.sh
@@ -55,6 +65,28 @@
     src: /tmp/learn-address.sh
     dest: /usr/local/bin/learn-address.sh
     mode: 0755
+
+- name: Set firewall to open traffic to VPN
+  uci: 
+    command: set 
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  with_items:
+    - key: "firewall.Allow_VPN"  
+      value: "rule"
+    - key: "firewall.Allow_VPN.name"  
+      value: "Allow_VPN"
+    - key: "firewall.Allow_VPN.target"  
+      value: "ACCEPT"
+    - key: "firewall.Allow_VPN.src"  
+      value: "wan"
+    - key: "firewall.Allow_VPN.proto"  
+      value: "udp"
+    - key: "firewall.Allow_VPN.dest_port"  
+      value: "{{ openwrt_openvpn_server_port }}"
+  notify:
+    - uci commit
+    - reload firewall
 
 - name: apply uci settings as server
   uci: 

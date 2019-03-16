@@ -10,6 +10,22 @@
   import_role:
     name: openwrt-uci
 
+- name: update opkg cache
+  raw: '[ "$(ls -A /var/opkg-lists/)" ] || opkg update'
+  changed_when: false
+
+- name: opkg install opensll-openvpn
+  raw: 'opkg list-installed openvpn-openssl | egrep -q . || opkg install openvpn-openssl'
+  changed_when: false
+
+- name: opkg install luaposix
+  raw: 'opkg list-installed luaposix | egrep -q . || opkg install luaposix'
+  changed_when: false
+
+- name: opkg install coreutils-sha1sum
+  raw: 'opkg list-installed coreutils-sha1sum | egrep -q . || opkg install coreutils-sha1sum'
+  changed_when: false
+
 - name: Includo task per client
   include_tasks: client.yml
   when: openwrt_openvpn_client
