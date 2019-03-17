@@ -140,6 +140,10 @@
     - uci commit
     - restart openvpn
     
+- name: crea file per hosts vpn
+  raw: '[ -f "/etc/hosts.openvpn-clients" ] || touch /etc/hosts.openvpn-clients'
+  changed_when: false
+
 - name: Aggiungi file per dnsmasq
   uci:
     command: add_list
