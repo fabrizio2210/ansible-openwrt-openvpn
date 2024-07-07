@@ -58,6 +58,7 @@
     src: learn-address.sh
     dest: /tmp/learn-address.sh
   changed_when: false
+  check_mode: no
   delegate_to: 127.0.0.1
 
 - name: Copia dello script per assegnazione nomi DNS
@@ -170,6 +171,7 @@
   register: route_result
   until: route_result.stdout.find("tun") != -1
   changed_when: false
+  check_mode: no
   retries: 7
   delay: 10
 
