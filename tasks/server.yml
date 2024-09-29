@@ -137,8 +137,8 @@
       value: "2"
     - key: "openvpn.server{{ openwrt_openvpn_server_name }}.learn_address"
       value: "/usr/local/bin/learn-address.sh"
-    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.cipher"
-      value: "BF-CBC"
+#    - key: "openvpn.server{{ openwrt_openvpn_server_name }}.data_ciphers"
+#      value: "AES-256-GCM:AES-128-GCM:BF-CBC"
   notify:
     - uci commit
     - restart openvpn

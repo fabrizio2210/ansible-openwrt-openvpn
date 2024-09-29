@@ -99,8 +99,6 @@
       value: "{{ openwrt_openvpn_comp_lzo }}"
     - key: "openvpn.client{{ openwrt_openvpn_client_name }}{{ openwrt_openvpn_server_name }}.ping_restart"
       value: "{{ openwrt_openvpn_ping_restart }}"
-    - key: "openvpn.client{{ openwrt_openvpn_client_name }}{{ openwrt_openvpn_server_name }}.cipher"
-      value: "BF-CBC"
   notify:
     - uci commit
     - restart openvpn
