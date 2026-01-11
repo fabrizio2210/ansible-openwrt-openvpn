@@ -122,8 +122,15 @@
 - set_fact:
     openwrt_openvpn_client_interface: "{{ route_result.stdout_lines[0] }}"
     openwrt_openvpn_client_alias_interface: "vpn{{ route_result.stdout_lines[0][-1] }}"
-    openwrt_openvpn_client_zone: "vpn_{{ openwrt_openvpn_server_name }}"
   when: not ansible_check_mode
+
+- set_fact:
+    openwrt_openvpn_client_interface: "dry-run-interface"
+    openwrt_openvpn_client_alias_interface: "vpn-dry-run-interface"
+  when: ansible_check_mode
+
+- set_fact:
+    openwrt_openvpn_client_zone: "vpn_{{ openwrt_openvpn_server_name }}"
 
 
 - debug:
@@ -148,7 +155,6 @@
       value: "none"
     - key: "network.{{ openwrt_openvpn_client_alias_interface }}.auto"
       value: "1"
-  when: not ansible_check_mode
   notify:
     - uci commit
     - reload network
@@ -174,7 +180,6 @@
       value: "ACCEPT"
     - key: "firewall.{{ openwrt_openvpn_client_zone }}.masq"
       value: "1"
-  when: not ansible_check_mode
   notify:
     - uci commit
     - reload firewall
