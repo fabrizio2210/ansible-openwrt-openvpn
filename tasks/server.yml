@@ -82,7 +82,7 @@
     - key: "firewall.Allow_VPN.src"  
       value: "wan"
     - key: "firewall.Allow_VPN.proto"  
-      value: "udp"
+      value: "{{openwrt_openvpn_proto}}"
     - key: "firewall.Allow_VPN.dest_port"  
       value: "{{ openwrt_openvpn_server_port }}"
   notify:
