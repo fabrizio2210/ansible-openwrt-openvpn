@@ -115,7 +115,7 @@
   register: route_result
   until: route_result.stdout.find("tun") != -1
   changed_when: false
-  check_mode: no
+  when: not ansible_check_mode
   retries: 7
   delay: 10
 
@@ -123,6 +123,7 @@
     openwrt_openvpn_client_interface: "{{ route_result.stdout_lines[0] }}"
     openwrt_openvpn_client_alias_interface: "vpn{{ route_result.stdout_lines[0][-1] }}"
     openwrt_openvpn_client_zone: "vpn_{{ openwrt_openvpn_server_name }}"
+  when: not ansible_check_mode
 
 
 - debug:
@@ -147,6 +148,7 @@
       value: "none"
     - key: "network.{{ openwrt_openvpn_client_alias_interface }}.auto"
       value: "1"
+  when: not ansible_check_mode
   notify:
     - uci commit
     - reload network
@@ -172,6 +174,7 @@
       value: "ACCEPT"
     - key: "firewall.{{ openwrt_openvpn_client_zone }}.masq"
       value: "1"
+  when: not ansible_check_mode
   notify:
     - uci commit
     - reload firewall
